@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inscrições – Instituto Alberto Magno</title>
+<style>
+  :root { --tinta:#1d2733; --suave:#5b6775; --linha:#d9dee5; --fundo:#f6f7f9; --cor:#1f3a5f; --erro:#b00020; --ok:#2e7d32; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--fundo); color:var(--tinta); font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  main { max-width:680px; margin:0 auto; padding:28px 18px 64px; }
+  h1 { font-size:1.5rem; line-height:1.25; margin:0 0 6px; color:var(--cor); }
+  h2 { font-size:1.15rem; margin:0 0 4px; }
+  .sub { color:var(--suave); margin:0 0 22px; }
+  .cartao { background:#fff; border:1px solid var(--linha); border-radius:10px; padding:16px 18px; margin:0 0 14px; }
+  .cartao p { margin:4px 0; }
+  .meta { color:var(--suave); font-size:.93rem; }
+  .desc { white-space:pre-line; margin:8px 0; }
+  a.botao, button { display:inline-block; font:inherit; font-weight:600; color:#fff; background:var(--cor); border:0; border-radius:8px; padding:10px 18px; cursor:pointer; text-decoration:none; }
+  button:disabled { opacity:.55; cursor:default; }
+  a.voltar { display:inline-block; margin:0 0 14px; color:var(--cor); text-decoration:none; font-size:.95rem; }
+  .etiqueta { display:inline-block; font-size:.82rem; font-weight:600; border-radius:999px; padding:2px 10px; background:#fdecea; color:var(--erro); }
+  .vagas { font-size:.88rem; color:var(--suave); }
+  form label.p { display:block; font-weight:600; margin:18px 0 4px; }
+  form .ajuda { display:block; font-weight:400; color:var(--suave); font-size:.9rem; margin-top:1px; }
+  form .obr { color:var(--erro); }
+  input[type=text], input[type=email], input[type=tel], select, textarea { width:100%; font:inherit; padding:9px 11px; border:1px solid #98a2b0; border-radius:7px; background:#fff; }
+  textarea { min-height:84px; }
+  .op { display:flex; gap:9px; align-items:flex-start; font-weight:400; margin:6px 0; cursor:pointer; }
+  .op input { margin-top:5px; flex:none; }
+  .aceitar { font-weight:400; font-size:.93rem; }
+  #erro { color:var(--erro); font-weight:600; margin:16px 0 0; }
+  .armadilha { position:absolute; left:-9999px; height:0; overflow:hidden; }
+  .feito { text-align:center; padding:26px 12px; }
+  .feito .tick { font-size:2.6rem; color:var(--ok); line-height:1; }
+</style>
+</head>
+<body>
+<main id="app"><p class="sub">A carregar…</p></main>
+
+<script>
+// Endereço da aplicação web do Apps Script (Implementar > Aplicação Web). Colar aqui, entre aspas.
+const API_URL = "https://script.google.com/macros/s/AKfycbz3GnSccsoIZh4ypgcwGi2Xnc_xRcDxv9rkKNNkugHY2xxNO9M4RFPN2ixLalH3eM0U/exec";
+
+const app = document.getElementById("app");
+const el = (tag, attrs, ...filhos) => {
+  const e = document.createElement(tag);
+  Object.entries(attrs || {}).forEach(([k, v]) => { if (v === undefined) return; if (k === "class") e.className = v; else if (k in e && k !== "list") e[k] = v; else e.setAttribute(k, v); });
+  filhos.flat().forEach((f) => { if (f != null && f !== false) e.appendChild(typeof f === "string" ? document.createTextNode(f) : f); });
+  return e;
+};
+const limpar = () => { app.innerHTML = ""; window.scrollTo(0, 0); };
+const aviso = (msg, contacto) => {
+  limpar();
+  app.appendChild(el("p", { class: "sub" }, msg));
+  if (contacto) app.appendChild(el("p", { class: "meta" }, "Contacto: " + contacto));
+};
+
+async function pedir(params) {
+  const r = await fetch(API_URL + "?" + new URLSearchParams(params).toString());
+  if (!r.ok) throw new Error("http " + r.status);
+  return r.json();
+}
+
+/* ---------- lista de cursos ---------- */
+async function mostrarLista() {
+  let d;
+  try { d = await pedir({}); } catch (e) { return aviso("Não foi possível carregar os cursos. Tente outra vez daqui a pouco."); }
+  document.title = d.titulo || document.title;
+  if (d.fechado) return aviso("As inscrições estão fechadas de momento.", d.contacto);
+  if (d.erro) return aviso(d.erro);
+  limpar();
+  app.appendChild(el("h1", {}, d.titulo || "Inscrições"));
+  if (!d.cursos.length) { app.appendChild(el("p", { class: "sub" }, "Não há cursos abertos a inscrições neste momento.")); return; }
+  app.appendChild(el("p", { class: "sub" }, "Escolha o curso em que se quer inscrever."));
+  d.cursos.forEach((c) => {
+    app.appendChild(el("div", { class: "cartao" },
+      el("h2", {}, c.titulo),
+      c.datas && el("p", { class: "meta" }, c.datas),
+      c.local && el("p", { class: "meta" }, c.local),
+      c.descricao && el("p", { class: "desc" }, c.descricao),
+      c.preco && el("p", { class: "meta" }, "Preço: " + c.preco),
+      c.esgotado ? el("span", { class: "etiqueta" }, "Sem vagas")
+        : el("p", {}, el("a", { class: "botao", href: "?curso=" + encodeURIComponent(c.codigo) }, "Inscrever-me"),
+            c.vagasRestantes != null && el("span", { class: "vagas" }, "  Vagas: " + c.vagasRestantes))));
+  });
+}
+
+/* ---------- formulário de um curso ---------- */
+async function mostrarCurso(codigo) {
+  let d;
+  try { d = await pedir({ curso: codigo }); } catch (e) { return aviso("Não foi possível carregar o curso. Tente outra vez daqui a pouco."); }
+  if (d.fechado) return aviso("As inscrições estão fechadas de momento.", d.contacto);
+  if (d.erro) { aviso(d.erro, d.contacto); app.appendChild(el("p", {}, el("a", { class: "voltar", href: "./" }, "← Ver os cursos abertos"))); return; }
+  const c = d.curso;
+  document.title = c.titulo + " – " + (d.titulo || "Inscrições");
+  limpar();
+  app.appendChild(el("a", { class: "voltar", href: "./" }, "← Todos os cursos"));
+  app.appendChild(el("h1", {}, c.titulo));
+  app.appendChild(el("p", { class: "sub" }, [c.datas, c.local].filter(Boolean).join(" · ")));
+  if (c.descricao) app.appendChild(el("p", { class: "desc" }, c.descricao));
+  if (c.preco) app.appendChild(el("p", { class: "meta" }, "Preço: " + c.preco));
+  if (c.esgotado) { app.appendChild(el("p", {}, el("span", { class: "etiqueta" }, "Sem vagas"))); return; }
+
+  const form = el("form", { novalidate: true });
+  const campos = [];
+  d.perguntas.forEach((q, i) => {
+    const id = "q" + i;
+    const rotulo = (txt) => el("label", { class: "p", htmlFor: id }, txt, q.obrig && el("span", { class: "obr" }, " *"), q.ajuda && el("span", { class: "ajuda" }, q.ajuda));
+    let leitura;
+    if (q.tipo === "aceitar") {
+      const cx = el("input", { type: "checkbox", id });
+      form.appendChild(el("label", { class: "op aceitar", htmlFor: id }, cx, el("span", {}, q.texto + (q.obrig ? " *" : ""), " ", el("em", {}, "(" + (q.opcoes[0] || "Tomei conhecimento") + ")"))));
+      leitura = () => cx.checked;
+    } else if (q.tipo === "escolha") {
+      form.appendChild(el("div", { class: "p" }, rotulo(q.texto)));
+      const radios = q.opcoes.map((o) => { const r = el("input", { type: "radio", name: id, value: o }); form.appendChild(el("label", { class: "op" }, r, o)); return r; });
+      leitura = () => { const m = radios.find((r) => r.checked); return m ? m.value : ""; };
+    } else if (q.tipo === "lista") {
+      form.appendChild(el("div", { class: "p" }, rotulo(q.texto)));
+      const cxs = q.opcoes.map((o) => { const x = el("input", { type: "checkbox", value: o }); form.appendChild(el("label", { class: "op" }, x, o)); return x; });
+      leitura = () => cxs.filter((x) => x.checked).map((x) => x.value);
+    } else {
+      form.appendChild(rotulo(q.texto));
+      const tipoInput = q.tipo === "email" ? "email" : q.tipo === "telefone" ? "tel" : "text";
+      const campo = q.tipo === "texto longo" ? el("textarea", { id }) : el("input", { type: tipoInput, id, autocomplete: q.tipo === "email" ? "email" : q.tipo === "telefone" ? "tel" : q.tipo === "nome" ? "name" : "off", inputMode: q.tipo === "nif" ? "numeric" : undefined });
+      form.appendChild(campo);
+      leitura = () => campo.value;
+    }
+    campos.push({ q, leitura });
+  });
+  form.appendChild(el("div", { class: "armadilha", "aria-hidden": "true" }, el("input", { type: "text", name: "website", id: "website", tabIndex: -1, autocomplete: "off" })));
+  const erro = el("div", { id: "erro", role: "alert" });
+  const botao = el("button", { type: "submit" }, "Enviar inscrição");
+  form.appendChild(erro);
+  form.appendChild(el("p", {}, botao));
+  app.appendChild(el("div", { class: "cartao" }, form));
+
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    erro.textContent = "";
+    const respostas = {};
+    for (const { q, leitura } of campos) {
+      const v = leitura();
+      const vazio = Array.isArray(v) ? !v.length : (v === false || String(v).trim() === "");
+      if (q.obrig && vazio) { erro.textContent = "Falta preencher: " + (q.texto.length > 70 ? q.texto.slice(0, 67) + "…" : q.texto); return; }
+      respostas[q.texto] = v;
+    }
+    botao.disabled = true; botao.textContent = "A enviar…";
+    try {
+      const r = await fetch(API_URL, { method: "POST", body: JSON.stringify({ curso: c.codigo, respostas, website: document.getElementById("website").value }) });
+      const j = await r.json();
+      if (j.erro) { erro.textContent = j.erro; botao.disabled = false; botao.textContent = "Enviar inscrição"; return; }
+      mostrarSucesso(c, j, respostas, d.perguntas);
+    } catch (e) {
+      erro.textContent = "Não foi possível enviar. Verifique a ligação e tente outra vez.";
+      botao.disabled = false; botao.textContent = "Enviar inscrição";
+    }
+  });
+}
+
+function mostrarSucesso(c, j, respostas, perguntas) {
+  const qEmail = perguntas.find((q) => q.tipo === "email");
+  const email = qEmail ? respostas[qEmail.texto] : "";
+  limpar();
+  const msg = j.email === "enviado" || j.email === "ja-enviado"
+    ? ["Enviámos um email de confirmação" + (email ? " para " + email : "") + ".", "O pagamento é tratado num segundo passo, por email."]
+    : ["A sua inscrição ficou registada, mas não foi possível enviar o email de confirmação.", j.contacto ? "Se não tiver notícias nossas, contacte-nos: " + j.contacto : ""];
+  app.appendChild(el("div", { class: "cartao feito" },
+    el("div", { class: "tick" }, "✔"),
+    el("h1", {}, "Inscrição recebida"),
+    el("p", {}, c.titulo),
+    ...msg.filter(Boolean).map((t) => el("p", {}, t)),
+    el("p", {}, el("a", { class: "voltar", href: "./" }, "← Voltar aos cursos"))));
+}
+
+/* ---------- arranque ---------- */
+if (API_URL.indexOf("COLAR_AQUI") === 0) aviso("Falta ligar o site: colocar o endereço da aplicação web em API_URL.");
+else {
+  const codigo = new URLSearchParams(location.search).get("curso");
+  if (codigo) mostrarCurso(codigo); else mostrarLista();
+}
+</script>
+</body>
+</html>
