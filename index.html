@@ -75,7 +75,16 @@ const el = (tag, attrs, ...filhos) => {
   filhos.flat().forEach((f) => { if (f != null && f !== false) e.appendChild(typeof f === "string" ? document.createTextNode(f) : f); });
   return e;
 };
-const urlImagem = (v) => !v ? "" : /^https:\/\//i.test(v) ? v : "imagens/" + encodeURIComponent(v);
+// Imagem do curso: nome de ficheiro (pasta «imagens»), endereço https ou link de partilha do Google Drive
+const idDrive = (v) => { const m = String(v).match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=)([\w-]{15,})/i); return m ? m[1] : ""; };
+const urlImagem = (v, alt) => {
+  if (!v) return "";
+  const id = idDrive(v);
+  if (id) return alt ? "https://lh3.googleusercontent.com/d/" + id + "=w1600" : "https://drive.google.com/thumbnail?id=" + id + "&sz=w1600";
+  return /^https:\/\//i.test(v) ? v : "imagens/" + encodeURIComponent(v);
+};
+// se o primeiro endereço falhar (Drive), tenta o alternativo; se também falhar, esconde a imagem
+const comAlternativa = (img, v) => { img.onerror = () => { if (!img.dataset.alt && idDrive(v)) { img.dataset.alt = "1"; img.src = urlImagem(v, true); } else img.style.display = "none"; }; };
 const limpar = () => { app.innerHTML = ""; window.scrollTo(0, 0); };
 const aviso = (msg, contacto) => {
   limpar();
@@ -102,7 +111,7 @@ async function mostrarLista() {
   app.appendChild(el("p", { class: "sub" }, "Escolha o curso em que se quer inscrever."));
   d.cursos.forEach((c) => {
     app.appendChild(el("div", { class: "cartao" },
-      c.imagem && el("img", { class: "capa", src: urlImagem(c.imagem), alt: "", onerror: function () { this.style.display = "none"; } }),
+      c.imagem && (() => { const i = el("img", { class: "capa", src: urlImagem(c.imagem), alt: "" }); comAlternativa(i, c.imagem); return i; })(),
       el("h2", {}, c.titulo),
       c.datas && el("p", { class: "meta" }, c.datas),
       c.local && el("p", { class: "meta" }, c.local),
@@ -123,7 +132,7 @@ async function mostrarCurso(codigo) {
   const c = d.curso;
   document.title = c.titulo + " – " + (d.titulo || "Inscrições");
   limpar();
-  if (c.imagem) { const h = document.getElementById("heroFoto"); if (h) { h.src = urlImagem(c.imagem); h.className = "foto curso"; h.style.display = ""; } }
+  if (c.imagem) { const h = document.getElementById("heroFoto"); if (h) { h.removeAttribute("onerror"); comAlternativa(h, c.imagem); h.src = urlImagem(c.imagem); h.className = "foto curso"; h.style.display = ""; } }
   app.appendChild(el("h1", {}, c.titulo));
   app.appendChild(el("p", { class: "sub" }, [c.datas, c.local].filter(Boolean).join(" · ")));
   if (c.descricao) app.appendChild(el("p", { class: "desc" }, c.descricao));
