@@ -14,6 +14,8 @@
   .topo img { height:46px; width:auto; }
   .hero { position:relative; background:var(--azul); }
   .hero .foto { display:block; width:100%; height:230px; object-fit:cover; object-position:center 30%; }
+  .hero .foto.curso { height:auto; max-height:380px; }
+  .cartao .capa { display:block; width:calc(100% + 56px); max-width:none; height:auto; margin:-26px -28px 20px; }
   .hero .faixa { background:var(--azul); color:#fff; padding:22px 22px 24px; border-left:10px solid var(--amarelo); }
   .hero .faixa div { max-width:880px; margin:0 auto; }
   .hero .faixa strong { display:block; font-weight:600; font-size:1.25rem; line-height:1.3; letter-spacing:.02em; text-transform:uppercase; }
@@ -50,13 +52,13 @@
   .rodape { background:var(--amarelo); color:#222; padding:26px 22px; font-size:.9rem; line-height:1.7; }
   .rodape div { max-width:880px; margin:0 auto; }
   .rodape a { color:#222; }
-  @media (max-width:560px) { .hero .foto { height:170px; } h1 { font-size:1.5rem; } .cartao { padding:20px 18px; } main { padding-top:32px; } }
+  @media (max-width:560px) { .hero .foto { height:170px; } .hero .foto.curso { max-height:240px; } .cartao .capa { width:calc(100% + 36px); margin:-20px -18px 16px; } h1 { font-size:1.5rem; } .cartao { padding:20px 18px; } main { padding-top:32px; } }
 </style>
 </head>
 <body>
 <header class="topo"><a href="./"><img src="https://institutoalbertomagno.com/wp-content/uploads/2026/10/logo.png" alt="Instituto Alberto Magno"></a></header>
 <div class="hero">
-  <img class="foto" src="https://institutoalbertomagno.com/wp-content/uploads/2026/11/1-1.png" alt="" onerror="this.style.display='none'">
+  <img class="foto" id="heroFoto" src="https://institutoalbertomagno.com/wp-content/uploads/2026/11/1-1.png" alt="" onerror="this.style.display='none'">
   <div class="faixa"><div><strong>Instituto<br>Alberto Magno</strong><span>Formação de professores</span></div></div>
 </div>
 <main id="app"><p class="sub">A carregar…</p></main>
@@ -73,6 +75,7 @@ const el = (tag, attrs, ...filhos) => {
   filhos.flat().forEach((f) => { if (f != null && f !== false) e.appendChild(typeof f === "string" ? document.createTextNode(f) : f); });
   return e;
 };
+const urlImagem = (v) => !v ? "" : /^https:\/\//i.test(v) ? v : "imagens/" + encodeURIComponent(v);
 const limpar = () => { app.innerHTML = ""; window.scrollTo(0, 0); };
 const aviso = (msg, contacto) => {
   limpar();
@@ -99,6 +102,7 @@ async function mostrarLista() {
   app.appendChild(el("p", { class: "sub" }, "Escolha o curso em que se quer inscrever."));
   d.cursos.forEach((c) => {
     app.appendChild(el("div", { class: "cartao" },
+      c.imagem && el("img", { class: "capa", src: urlImagem(c.imagem), alt: "", onerror: function () { this.style.display = "none"; } }),
       el("h2", {}, c.titulo),
       c.datas && el("p", { class: "meta" }, c.datas),
       c.local && el("p", { class: "meta" }, c.local),
@@ -119,7 +123,7 @@ async function mostrarCurso(codigo) {
   const c = d.curso;
   document.title = c.titulo + " – " + (d.titulo || "Inscrições");
   limpar();
-  app.appendChild(el("a", { class: "voltar", href: "./" }, "← Todos os cursos"));
+  if (c.imagem) { const h = document.getElementById("heroFoto"); if (h) { h.src = urlImagem(c.imagem); h.className = "foto curso"; h.style.display = ""; } }
   app.appendChild(el("h1", {}, c.titulo));
   app.appendChild(el("p", { class: "sub" }, [c.datas, c.local].filter(Boolean).join(" · ")));
   if (c.descricao) app.appendChild(el("p", { class: "desc" }, c.descricao));
