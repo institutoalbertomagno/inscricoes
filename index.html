@@ -199,16 +199,18 @@ function mostrarSucesso(c, j, respostas, perguntas) {
   const qEmail = perguntas.find((q) => q.tipo === "email");
   const email = qEmail ? respostas[qEmail.texto] : "";
   limpar();
+  // frase final: a do curso (coluna «Mensagem final no site»; «-» = nenhuma) ou a normal
+  const fim = c.mensagem ? (c.mensagem.trim() === "-" ? "" : c.mensagem) : "O pagamento é tratado num segundo passo, por email.";
   const msg = j.email === "enviado" || j.email === "ja-enviado"
-    ? ["Enviámos um email de confirmação" + (email ? " para " + email : "") + ".", "O pagamento é tratado num segundo passo, por email."]
+    ? ["Enviámos um email de confirmação" + (email ? " para " + email : "") + ".", fim]
     : j.email === "desativado"
-    ? ["A sua inscrição ficou registada.", "O pagamento é tratado num segundo passo, por email."]
+    ? ["A sua inscrição ficou registada.", fim]
     : ["A sua inscrição ficou registada, mas não foi possível enviar o email de confirmação.", j.contacto ? "Se não tiver notícias nossas, contacte-nos: " + j.contacto : ""];
   app.appendChild(el("div", { class: "cartao feito" },
     el("div", { class: "tick" }, "✔"),
     el("h1", {}, "Inscrição recebida"),
     el("p", {}, c.titulo),
-    ...msg.filter(Boolean).map((t) => el("p", {}, t)),
+    ...msg.filter(Boolean).map((t) => el("p", { class: "desc" }, t)),
     ""));
 }
 
