@@ -10,8 +10,7 @@
   * { box-sizing: border-box; }
   body { margin:0; background:var(--fundo); color:var(--texto); font:15.5px/1.75 Poppins,Helvetica,Arial,sans-serif; display:flex; flex-direction:column; min-height:100vh; }
   .topo { background:#fff; padding:14px 22px; box-shadow:0 1px 0 var(--linha); }
-  .topo a { display:inline-block; line-height:0; }
-  .topo img { height:46px; width:auto; }
+  .topo img { display:block; height:46px; width:auto; }
   .hero { position:relative; background:var(--azul); }
   .hero .foto { display:block; width:100%; height:230px; object-fit:cover; object-position:center 30%; }
   .hero .foto.curso { height:auto; max-height:380px; }
@@ -56,7 +55,7 @@
 </style>
 </head>
 <body>
-<header class="topo"><a href="./"><img src="https://institutoalbertomagno.com/wp-content/uploads/2026/10/logo.png" alt="Instituto Alberto Magno"></a></header>
+<header class="topo"><img src="https://institutoalbertomagno.com/wp-content/uploads/2026/10/logo.png" alt="Instituto Alberto Magno"></header>
 <div class="hero">
   <img class="foto" id="heroFoto" alt="" style="display:none">
   <div class="faixa"><div><strong>Instituto<br>Alberto Magno</strong><span>Formação de professores</span></div></div>
@@ -128,7 +127,7 @@ async function mostrarCurso(codigo) {
   let d;
   try { d = await pedir({ curso: codigo }); } catch (e) { return aviso("Não foi possível carregar o curso. Tente outra vez daqui a pouco."); }
   if (d.fechado) return aviso("As inscrições estão fechadas de momento.", d.contacto);
-  if (d.erro) { aviso(d.erro, d.contacto); app.appendChild(el("p", {}, el("a", { class: "voltar", href: "./" }, "← Ver os cursos abertos"))); return; }
+  if (d.erro) { aviso(d.erro, d.contacto); return; }
   const c = d.curso;
   document.title = c.titulo + " – " + (d.titulo || "Inscrições");
   limpar();
@@ -202,13 +201,15 @@ function mostrarSucesso(c, j, respostas, perguntas) {
   limpar();
   const msg = j.email === "enviado" || j.email === "ja-enviado"
     ? ["Enviámos um email de confirmação" + (email ? " para " + email : "") + ".", "O pagamento é tratado num segundo passo, por email."]
+    : j.email === "desativado"
+    ? ["A sua inscrição ficou registada.", "O pagamento é tratado num segundo passo, por email."]
     : ["A sua inscrição ficou registada, mas não foi possível enviar o email de confirmação.", j.contacto ? "Se não tiver notícias nossas, contacte-nos: " + j.contacto : ""];
   app.appendChild(el("div", { class: "cartao feito" },
     el("div", { class: "tick" }, "✔"),
     el("h1", {}, "Inscrição recebida"),
     el("p", {}, c.titulo),
     ...msg.filter(Boolean).map((t) => el("p", {}, t)),
-    el("p", {}, el("a", { class: "voltar", href: "./" }, "← Voltar aos cursos"))));
+    ""));
 }
 
 /* ---------- arranque ---------- */
